@@ -376,6 +376,7 @@ Editor::Editor ()
 	, _stationary_playhead (false)
 	, _maximised (false)
 	, tempo_lines (0)
+	, _tempo_lines_bfc (0)
 	, global_rect_group (0)
 	, time_line_group (0)
 	, tempo_marker_menu (0)
@@ -5907,6 +5908,11 @@ Editor::session_going_away ()
 	remove_metric_marks ();
 	hide_measures ();
 	clear_marker_display ();
+
+	delete tempo_lines;
+	tempo_lines = 0;
+	delete _tempo_lines_bfc;
+	_tempo_lines_bfc = 0;
 
 	stop_step_editing ();
 
