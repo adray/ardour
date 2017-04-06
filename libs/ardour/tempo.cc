@@ -2713,7 +2713,7 @@ TempoMap::solve_map_minute (Metrics& imaginary, TempoSection* section, const dou
 #endif
 
 	MetricSectionFrameSorter fcmp;
-	imaginary.sort (fcmp);
+	sort (imaginary.begin(), imaginary.end(), fcmp);
 
 	recompute_tempi (imaginary);
 
@@ -2780,7 +2780,7 @@ TempoMap::solve_map_pulse (Metrics& imaginary, TempoSection* section, const doub
 #endif
 
 	MetricSectionSorter cmp;
-	imaginary.sort (cmp);
+	sort (imaginary.begin(), imaginary.end(), cmp);
 
 	recompute_tempi (imaginary);
 	/* Reordering
@@ -2942,7 +2942,7 @@ TempoMap::solve_map_minute (Metrics& imaginary, MeterSection* section, const dou
 	}
 
 	MetricSectionFrameSorter fcmp;
-	imaginary.sort (fcmp);
+	sort (imaginary.begin(), imaginary.end(), fcmp);
 
 	recompute_meters (imaginary);
 
@@ -3069,7 +3069,7 @@ TempoMap::solve_map_bbt (Metrics& imaginary, MeterSection* section, const BBT_Ti
 	}
 
 	MetricSectionSorter cmp;
-	imaginary.sort (cmp);
+	sort (imaginary.begin(), imaginary.end(), cmp);
 
 	recompute_meters (imaginary);
 
@@ -4644,7 +4644,7 @@ TempoMap::set_state (const XMLNode& node, int /*version*/)
 
 		if (niter == nlist.end()) {
 			MetricSectionSorter cmp;
-			_metrics.sort (cmp);
+			sort (_metrics.begin(), _metrics.end(), cmp);
 		}
 
 		/* check for legacy sessions where bbt was the base musical unit for tempo */
@@ -4800,23 +4800,23 @@ TempoMap::remove_time (framepos_t where, framecnt_t amount)
 {
 	bool moved = false;
 
-	std::list<MetricSection*> metric_kill_list;
+	list<Metrics::iterator> metric_kill_list;
 
-	TempoSection* last_tempo = NULL;
-	MeterSection* last_meter = NULL;
+	list<Metrics::iterator>::iterator last_tempo = metric_kill_list.end();
+	list<Metrics::iterator>::iterator last_meter = metric_kill_list.end();
 	bool tempo_after = false; // is there a tempo marker at the first sample after the removed range?
 	bool meter_after = false; // is there a meter marker likewise?
 	{
 		Glib::Threads::RWLock::WriterLock lm (lock);
 		for (Metrics::iterator i = _metrics.begin(); i != _metrics.end(); ++i) {
 			if ((*i)->frame() >= where && (*i)->frame() < where+amount) {
-				metric_kill_list.push_back(*i);
+				metric_kill_list.push_back(i);
 				TempoSection *lt = dynamic_cast<TempoSection*> (*i);
 				if (lt)
-					last_tempo = lt;
+					last_tempo = --metric_kill_list.end();
 				MeterSection *lm = dynamic_cast<MeterSection*> (*i);
 				if (lm)
-					last_meter = lm;
+					last_meter = --metric_kill_list.end();
 			}
 			else if ((*i)->frame() >= where) {
 				// TODO: make sure that moved tempo/meter markers are rounded to beat/bar boundaries
@@ -4831,20 +4831,20 @@ TempoMap::remove_time (framepos_t where, framecnt_t amount)
 		}
 
 		//find the last TEMPO and METER metric (if any) and move it to the cut point so future stuff is correct
-		if (last_tempo && !tempo_after) {
-			metric_kill_list.remove(last_tempo);
-			last_tempo->set_minute (minute_at_frame (where));
+		if (last_tempo != metric_kill_list.end() && !tempo_after) {
+			metric_kill_list.erase (last_tempo);
+			(*(*last_tempo))->set_minute (minute_at_frame (where));
 			moved = true;
 		}
-		if (last_meter && !meter_after) {
-			metric_kill_list.remove(last_meter);
-			last_meter->set_minute (minute_at_frame (where));
+		if (last_meter != metric_kill_list.end() && !meter_after) {
+			metric_kill_list.erase (last_meter);
+			(*(*last_meter))->set_minute (minute_at_frame (where));
 			moved = true;
 		}
 
 		//remove all the remaining metrics
-		for (std::list<MetricSection*>::iterator i = metric_kill_list.begin(); i != metric_kill_list.end(); ++i) {
-			_metrics.remove(*i);
+		for (list<Metrics::iterator>::iterator i = metric_kill_list.begin(); i != metric_kill_list.end(); ++i) {
+			_metrics.erase (*i);
 			moved = true;
 		}
 
