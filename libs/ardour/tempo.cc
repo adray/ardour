@@ -3082,7 +3082,7 @@ TempoMap::copy_metrics_and_point (const Metrics& metrics, Metrics& copy, TempoSe
 
 	for (Metrics::const_iterator i = metrics.begin(); i != metrics.end(); ++i) {
 		if ((*i)->is_tempo()) {
-			TempoSection const * const t = dynamic_cast<TempoSection const * const> (*i);
+			TempoSection const * const t = static_cast<TempoSection const * const> (*i);
 			if (t == section) {
 				ret = new TempoSection (*t);
 				copy.push_back (ret);
@@ -3092,7 +3092,7 @@ TempoMap::copy_metrics_and_point (const Metrics& metrics, Metrics& copy, TempoSe
 			TempoSection* cp = new TempoSection (*t);
 			copy.push_back (cp);
 		} else {
-			MeterSection const * const m = dynamic_cast<MeterSection const * const> (*i);
+			MeterSection const * const m = static_cast<MeterSection const * const> (*i);
 			MeterSection* cp = new MeterSection (*m);
 			copy.push_back (cp);
 		}
@@ -3108,11 +3108,11 @@ TempoMap::copy_metrics_and_point (const Metrics& metrics, Metrics& copy, MeterSe
 
 	for (Metrics::const_iterator i = metrics.begin(); i != metrics.end(); ++i) {
 		if ((*i)->is_tempo()) {
-			TempoSection const * const t = dynamic_cast<TempoSection const * const> (*i);
+			TempoSection const * const t = static_cast<TempoSection const * const> (*i);
 			TempoSection* cp = new TempoSection (*t);
 			copy.push_back (cp);
 		} else {
-			MeterSection const * const m = dynamic_cast<MeterSection const * const> (*i);
+			MeterSection const * const m = static_cast<MeterSection const * const> (*i);
 			if (m == section) {
 				ret = new MeterSection (*m);
 				copy.push_back (ret);
