@@ -1944,7 +1944,7 @@ private:
 	void stop_canvas_autoscroll ();
 
 	/* trimming */
-	void point_trim (GdkEvent *, framepos_t);
+	void point_trim (GdkEvent *, const ARDOUR::MusicFrame&);
 
 	void trim_region_front();
 	void trim_region_back();
