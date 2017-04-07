@@ -71,17 +71,18 @@ Location::Location (Session& s)
 }
 
 /** Construct a new Location, giving it the position lock style determined by glue-new-markers-to-bars-and-beats */
-Location::Location (Session& s, framepos_t sample_start, framepos_t sample_end, const std::string &name, Flags bits, const uint32_t sub_num)
+Location::Location (Session& s, MusicFrame sample_start, MusicFrame sample_end, const std::string &name, Flags bits)
 	: SessionHandleRef (s)
 	, _name (name)
-	, _start (sample_start)
-	, _end (sample_end)
+	, _start (sample_start.frame)
+	, _end (sample_end.frame)
 	, _flags (bits)
 	, _locked (false)
 	, _position_lock_style (s.config.get_glue_new_markers_to_bars_and_beats() ? MusicTime : AudioTime)
 
 {
-	recompute_beat_from_frames (sub_num);
+	recompute_start_beat_from_frames (sample_start.division);
+	recompute_end_beat_from_frames (sample_end.division);
 
 	assert (_start >= 0);
 	assert (_end >= 0);
@@ -188,9 +189,9 @@ Location::set_name (const std::string& str)
  *  @param allow_beat_recompute True to recompute BEAT start time from the new given start time.
  */
 int
-Location::set_start (framepos_t s, bool force, bool allow_beat_recompute, const uint32_t sub_num)
+Location::set_start (const MusicFrame& s, bool force, bool allow_beat_recompute)
 {
-	if (s < 0) {
+	if (s.frame < 0) {
 		return -1;
 	}
 
@@ -199,17 +200,17 @@ Location::set_start (framepos_t s, bool force, bool allow_beat_recompute, const 
 	}
 
 	if (!force) {
-		if (((is_auto_punch() || is_auto_loop()) && s >= _end) || (!is_mark() && s > _end)) {
+		if (((is_auto_punch() || is_auto_loop()) && s.frame >= _end) || (!is_mark() && s.frame > _end)) {
 			return -1;
 		}
 	}
 
 	if (is_mark()) {
-		if (_start != s) {
-			_start = s;
-			_end = s;
+		if (_start != s.frame) {
+			_start = s.frame;
+			_end = s.frame;
 			if (allow_beat_recompute) {
-				recompute_beat_from_frames (sub_num);
+				recompute_start_beat_from_frames (s.division);
 			}
 
 			start_changed (this); /* EMIT SIGNAL */
@@ -232,25 +233,25 @@ Location::set_start (framepos_t s, bool force, bool allow_beat_recompute, const 
 		return 0;
 	} else if (!force) {
 		/* range locations must exceed a minimum duration */
-		if (_end - s < Config->get_range_location_minimum()) {
+		if (_end - s.frame < Config->get_range_location_minimum()) {
 			return -1;
 		}
 	}
 
-	if (s != _start) {
+	if (s.frame != _start) {
 
 		framepos_t const old = _start;
 
-		_start = s;
+		_start = s.frame;
 		if (allow_beat_recompute) {
-			recompute_beat_from_frames (sub_num);
+			recompute_start_beat_from_frames (s.division);
 		}
 		start_changed (this); /* EMIT SIGNAL */
 		StartChanged (); /* EMIT SIGNAL */
 
 		if (is_session_range ()) {
 			Session::StartTimeChanged (old); /* EMIT SIGNAL */
-			AudioFileSource::set_header_position_offset (s);
+			AudioFileSource::set_header_position_offset (s.frame);
 		}
 	}
 
@@ -265,7 +266,7 @@ Location::set_start (framepos_t s, bool force, bool allow_beat_recompute, const 
  *  @param allow_beat_recompute True to recompute BEAT end time from the new given end time.
  */
 int
-Location::set_end (framepos_t e, bool force, bool allow_beat_recompute, const uint32_t sub_num)
+Location::set_end (const MusicFrame& e, bool force, bool allow_beat_recompute)
 {
 	if (e < 0) {
 		return -1;
@@ -276,17 +277,17 @@ Location::set_end (framepos_t e, bool force, bool allow_beat_recompute, const ui
 	}
 
 	if (!force) {
-		if (((is_auto_punch() || is_auto_loop()) && e <= _start) || e < _start) {
+		if (((is_auto_punch() || is_auto_loop()) && e.frame <= _start) || e.frame < _start) {
 			return -1;
 		}
 	}
 
 	if (is_mark()) {
-		if (_start != e) {
-			_start = e;
-			_end = e;
+		if (_start != e.frame) {
+			_start = e.frame;
+			_end = e.frame;
 			if (allow_beat_recompute) {
-				recompute_beat_from_frames (sub_num);
+				recompute_end_beat_from_frames (e.division);
 			}
 			//start_changed (this); /* EMIT SIGNAL */
 			//StartChanged (); /* EMIT SIGNAL */
@@ -300,7 +301,7 @@ Location::set_end (framepos_t e, bool force, bool allow_beat_recompute, const ui
 		return 0;
 	} else if (!force) {
 		/* range locations must exceed a minimum duration */
-		if (e - _start < Config->get_range_location_minimum()) {
+		if (e.frame - _start < Config->get_range_location_minimum()) {
 			return -1;
 		}
 	}
@@ -309,9 +310,9 @@ Location::set_end (framepos_t e, bool force, bool allow_beat_recompute, const ui
 
 		framepos_t const old = _end;
 
-		_end = e;
+		_end = e.frame;
 		if (allow_beat_recompute) {
-			recompute_beat_from_frames (sub_num);
+			recompute_end_beat_from_frames (e.division);
 		}
 
 		end_changed(this); /* EMIT SIGNAL */
@@ -328,14 +329,14 @@ Location::set_end (framepos_t e, bool force, bool allow_beat_recompute, const ui
 }
 
 int
-Location::set (framepos_t s, framepos_t e, bool allow_beat_recompute, const uint32_t sub_num)
+Location::set (const MusicFrame& s, const MusicFrame& e, bool allow_beat_recompute)
 {
 	if (s < 0 || e < 0) {
 		return -1;
 	}
 
 	/* check validity */
-	if (((is_auto_punch() || is_auto_loop()) && s >= e) || (!is_mark() && s > e)) {
+	if (((is_auto_punch() || is_auto_loop()) && s.frame >= e.frame) || (!is_mark() && s.frame > e.frame)) {
 		return -1;
 	}
 
@@ -344,12 +345,13 @@ Location::set (framepos_t s, framepos_t e, bool allow_beat_recompute, const uint
 
 	if (is_mark()) {
 
-		if (_start != s) {
-			_start = s;
-			_end = s;
+		if (_start != s.frame) {
+			_start = s.frame;
+			_end = s.frame;
 
 			if (allow_beat_recompute) {
-				recompute_beat_from_frames (sub_num);
+				recompute_start_beat_from_frames (s.division);
+				recompute_end_beat_from_frames (e.division);
 			}
 
 			start_change = true;
@@ -362,35 +364,35 @@ Location::set (framepos_t s, framepos_t e, bool allow_beat_recompute, const uint
 	} else {
 
 		/* range locations must exceed a minimum duration */
-		if (e - s < Config->get_range_location_minimum()) {
+		if (e.frame - s.frame < Config->get_range_location_minimum()) {
 			return -1;
 		}
 
-		if (s != _start) {
+		if (s.frame != _start) {
 
 			framepos_t const old = _start;
-			_start = s;
+			_start = s.frame;
 
 			if (allow_beat_recompute) {
-				recompute_beat_from_frames (sub_num);
+				recompute_start_beat_from_frames (s.division);
 			}
 
 			start_change = true;
 
 			if (is_session_range ()) {
 				Session::StartTimeChanged (old); /* EMIT SIGNAL */
-				AudioFileSource::set_header_position_offset (s);
+				AudioFileSource::set_header_position_offset (s.frame);
 			}
 		}
 
 
-		if (e != _end) {
+		if (e.frame != _end) {
 
 			framepos_t const old = _end;
-			_end = e;
+			_end = e.frame;
 
 			if (allow_beat_recompute) {
-				recompute_beat_from_frames (sub_num);
+				recompute_end_beat_from_frames (e.division);
 			}
 
 			end_change = true;
@@ -431,7 +433,8 @@ Location::move_to (framepos_t pos, const uint32_t sub_num)
 	if (_start != pos) {
 		_start = pos;
 		_end = _start + length();
-		recompute_beat_from_frames (sub_num);
+		recompute_start_beat_from_frames (sub_num);
+		recompute_end_beat_from_frames (0);
 
 		changed (this); /* EMIT SIGNAL */
 		Changed (); /* EMIT SIGNAL */
@@ -682,12 +685,14 @@ Location::set_state (const XMLNode& node, int version)
 	}
 
 	if (position_lock_style() == AudioTime) {
-		recompute_beat_from_frames (0);
+		recompute_start_beat_from_frames (0);
+		recompute_end_beat_from_frames (0);
 	} else{
 		/* music */
 		if (!node.get_property ("start-beat", _start_beat) ||
 		    !node.get_property ("end-beat", _end_beat)) {
-			recompute_beat_from_frames (0);
+			recompute_start_beat_from_frames (0);
+			recompute_end_beat_from_frames (0);
 		}
 	}
 
@@ -711,7 +716,8 @@ Location::set_position_lock_style (PositionLockStyle ps)
 	_position_lock_style = ps;
 
 	if (ps == MusicTime) {
-		recompute_beat_from_frames (0);
+		recompute_start_beat_from_frames (0);
+		recompute_end_beat_from_frames (0);
 	}
 
 	position_lock_style_changed (this); /* EMIT SIGNAL */
@@ -719,9 +725,13 @@ Location::set_position_lock_style (PositionLockStyle ps)
 }
 
 void
-Location::recompute_beat_from_frames (const uint32_t sub_num)
+Location::recompute_start_beat_from_frames (const uint32_t sub_num)
 {
 	_start_beat = _session.tempo_map().exact_beat_at_frame (_start, sub_num);
+}
+void
+Location::recompute_end_beat_from_frames (const uint32_t sub_num)
+{
 	_end_beat = _session.tempo_map().exact_beat_at_frame (_end, sub_num);
 }
 
@@ -1066,7 +1076,7 @@ Locations::set_state (const XMLNode& node, int version)
 
 	Location* session_range_location = 0;
 	if (version < 3000) {
-		session_range_location = new Location (_session, 0, 0, _("session"), Location::IsSessionRange, 0);
+		session_range_location = new Location (_session, 0, 0, _("session"), Location::IsSessionRange);
 		new_locations.push_back (session_range_location);
 	}
 
