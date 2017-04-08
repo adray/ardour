@@ -51,9 +51,9 @@ using namespace std;
 using namespace ARDOUR;
 using namespace PBD;
 
-struct AudioRangeComparator {
-	bool operator()(AudioRange a, AudioRange b) {
-		return a.start < b.start;
+struct MusicFrameRangeComparator {
+	bool operator()(MusicFrameRange a, MusicFrameRange b) {
+		return a.start.frame < b.start.frame;
 	}
 };
 
@@ -341,11 +341,11 @@ Selection::toggle (framepos_t start, framepos_t end)
 {
 	clear_objects();  //enforce object/range exclusivity
 
-	AudioRangeComparator cmp;
+	MusicFrameRangeComparator cmp;
 
 	/* XXX this implementation is incorrect */
 
-	time.push_back (AudioRange (start, end, ++next_time_id));
+	time.push_back (MusicFrameRange (start, end, ++next_time_id));
 	time.consolidate ();
 	time.sort (cmp);
 
@@ -483,15 +483,15 @@ Selection::add (MidiRegionView* mrv)
 }
 
 long
-Selection::add (framepos_t start, framepos_t end)
+Selection::add (MusicFrame start, MusicFrame end)
 {
 	clear_objects();  //enforce object/range exclusivity
 
-	AudioRangeComparator cmp;
+	MusicFrameRangeComparator cmp;
 
 	/* XXX this implementation is incorrect */
 
-	time.push_back (AudioRange (start, end, ++next_time_id));
+	time.push_back (MusicFrameRange (start, end, ++next_time_id));
 	time.consolidate ();
 	time.sort (cmp);
 
@@ -507,7 +507,7 @@ Selection::move_time (framecnt_t distance)
 		return;
 	}
 
-	for (list<AudioRange>::iterator i = time.begin(); i != time.end(); ++i) {
+	for (list<MusicFrameRange>::iterator i = time.begin(); i != time.end(); ++i) {
 		(*i).start += distance;
 		(*i).end += distance;
 	}
@@ -516,19 +516,19 @@ Selection::move_time (framecnt_t distance)
 }
 
 void
-Selection::replace (uint32_t sid, framepos_t start, framepos_t end)
+Selection::replace (uint32_t sid, MusicFrame start, MusicFrame end)
 {
 	clear_objects();  //enforce object/range exclusivity
 
-	for (list<AudioRange>::iterator i = time.begin(); i != time.end(); ++i) {
+	for (list<MusicFrameRange>::iterator i = time.begin(); i != time.end(); ++i) {
 		if ((*i).id == sid) {
 			time.erase (i);
-			time.push_back (AudioRange(start,end, sid));
+			time.push_back (MusicFrameRange(start,end, sid));
 
 			/* don't consolidate here */
 
 
-			AudioRangeComparator cmp;
+			MusicFrameRangeComparator cmp;
 			time.sort (cmp);
 
 			TimeChanged ();
@@ -661,7 +661,7 @@ Selection::remove (uint32_t selection_id)
 		return;
 	}
 
-	for (list<AudioRange>::iterator i = time.begin(); i != time.end(); ++i) {
+	for (list<MusicFrameRange>::iterator i = time.begin(); i != time.end(); ++i) {
 		if ((*i).id == selection_id) {
 			time.erase (i);
 
@@ -769,17 +769,17 @@ Selection::set (vector<RegionView*>& v)
  *  the list of tracks it applies to.
  */
 long
-Selection::set (framepos_t start, framepos_t end)
+Selection::set (MusicFrame start, MusicFrame end)
 {
 	clear_objects();  //enforce region/object exclusivity
 	clear_time();
 
-	if ((start == 0 && end == 0) || end < start) {
+	if ((start == 0 && end == 0) || end.frame < start.frame) {
 		return 0;
 	}
 
 	if (time.empty()) {
-		time.push_back (AudioRange (start, end, ++next_time_id));
+		time.push_back (MusicFrameRange (start, end, ++next_time_id));
 	} else {
 		/* reuse the first entry, and remove all the rest */
 
@@ -806,7 +806,7 @@ Selection::set (framepos_t start, framepos_t end)
  *  @param end New end time.
  */
 void
-Selection::set_preserving_all_ranges (framepos_t start, framepos_t end)
+Selection::set_preserving_all_ranges (MusicFrame start, MusicFrame end)
 {
 	clear_objects();  //enforce region/object exclusivity
 
@@ -815,9 +815,9 @@ Selection::set_preserving_all_ranges (framepos_t start, framepos_t end)
 	}
 
 	if (time.empty ()) {
-		time.push_back (AudioRange (start, end, ++next_time_id));
+		time.push_back (MusicFrameRange (start, end, ++next_time_id));
 	} else {
-		time.sort (AudioRangeComparator ());
+		time.sort (MusicFrameRangeComparator ());
 		time.front().start = start;
 		time.back().end = end;
 	}
@@ -1193,9 +1193,11 @@ Selection::get_state () const
 	}
 
 	for (TimeSelection::const_iterator i = time.begin(); i != time.end(); ++i) {
-		XMLNode* t = node->add_child (X_("AudioRange"));
-		t->set_property (X_("start"), (*i).start);
-		t->set_property (X_("end"), (*i).end);
+		XMLNode* t = node->add_child (X_("MusicFrameRange"));
+		t->set_property (X_("start"), (*i).start.frame);
+		t->set_property (X_("end"), (*i).end.frame);
+		t->set_property (X_("start-division"), (*i).start.division);
+		t->set_property (X_("end-division"), (*i).end.division);
 	}
 
 	for (MarkerSelection::const_iterator i = markers.begin(); i != markers.end(); ++i) {
@@ -1355,16 +1357,23 @@ Selection::set_state (XMLNode const & node, int)
 					}
 				}
 			}
-
-		} else if  ((*i)->name() == X_("AudioRange")) {
+		} else if  ((*i)->name() == X_("MusicFrameRange")) {
 			framepos_t start;
 			framepos_t end;
 
 			if (!(*i)->get_property (X_("start"), start) || !(*i)->get_property (X_("end"), end)) {
 				assert(false);
 			}
-			set_preserving_all_ranges (start, end);
 
+			int32_t start_division;
+			int32_t end_division;
+
+			if ((*i)->get_property (X_("start-division"), start_division) && (*i)->get_property (X_("end-division"), end_division)) {
+				set_preserving_all_ranges (MusicFrame (start, start_division),
+							   MusicFrame (end, end_division));
+			} else {
+				set_preserving_all_ranges (start, end);
+			}
 		} else if ((*i)->name() == X_("AutomationView")) {
 
 			std::string param;

@@ -2520,7 +2520,7 @@ Editor::start_selection_grab (ArdourCanvas::Item* /*item*/, GdkEvent* event)
 	boost::shared_ptr<Playlist> playlist = clicked_axisview->playlist();
 
 	playlist->clear_changes ();
-	clicked_routeview->playlist()->add_region (region, selection->time[clicked_selection].start);
+	clicked_routeview->playlist()->add_region (region, selection->time[clicked_selection].start.frame);
 	_session->add_command(new StatefulDiffCommand (playlist));
 
 	c.disconnect ();
