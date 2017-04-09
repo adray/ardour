@@ -3249,9 +3249,9 @@ Editor::separate_under_selected_regions ()
 {
 	vector<PlaylistState> playlists;
 
-	RegionSelection rs;
+	list<RegionView*> rs;
 
-	rs = get_regions_from_selection_and_entered();
+	rs = get_regions_from_selection_and_entered().by_layer();
 
 	if (!_session || rs.empty()) {
 		return;
@@ -3261,7 +3261,7 @@ Editor::separate_under_selected_regions ()
 
 	list<boost::shared_ptr<Region> > regions_to_remove;
 
-	for (RegionSelection::iterator i = rs.begin(); i != rs.end(); ++i) {
+	for (list<RegionView*>::iterator i = rs.begin(); i != rs.end(); ++i) {
 		// we can't just remove the region(s) in this loop because
 		// this removes them from the RegionSelection, and they thus
 		// disappear from underneath the iterator, and the ++i above
@@ -3270,8 +3270,7 @@ Editor::separate_under_selected_regions ()
 		// so, first iterate over the regions to be removed from rs and
 		// add them to the regions_to_remove list, and then
 		// iterate over the list to actually remove them.
-
-		regions_to_remove.push_back ((*i)->region());
+		regions_to_remove.push_front ((*i)->region());
 	}
 
 	for (list<boost::shared_ptr<Region> >::iterator rl = regions_to_remove.begin(); rl != regions_to_remove.end(); ++rl) {
@@ -3292,8 +3291,7 @@ Editor::separate_under_selected_regions ()
 			}
 		}
 
-		if (i == playlists.end()) {
-
+		if (!playlist->frozen() && i == playlists.end()) {
 			PlaylistState before;
 			before.playlist = playlist;
 			before.before = &playlist->get_state();
