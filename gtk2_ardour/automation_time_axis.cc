@@ -654,7 +654,7 @@ AutomationTimeAxisView::add_automation_event (GdkEvent* event, framepos_t frame,
 }
 
 bool
-AutomationTimeAxisView::paste (framepos_t pos, const Selection& selection, PasteContext& ctx, const int32_t divisions)
+AutomationTimeAxisView::paste (const AudioMusic& pos, const Selection& selection, PasteContext& ctx)
 {
 	if (_line) {
 		return paste_one (pos, ctx.count, ctx.times, selection, ctx.counts, ctx.greedy);
@@ -675,7 +675,7 @@ AutomationTimeAxisView::paste (framepos_t pos, const Selection& selection, Paste
 }
 
 bool
-AutomationTimeAxisView::paste_one (framepos_t pos, unsigned paste_count, float times, const Selection& selection, ItemCounts& counts, bool greedy)
+AutomationTimeAxisView::paste_one (const AudioMusic& where, unsigned paste_count, float times, const Selection& selection, ItemCounts& counts, bool greedy)
 {
 	boost::shared_ptr<AutomationList> alist(_line->the_list());
 
@@ -683,7 +683,7 @@ AutomationTimeAxisView::paste_one (framepos_t pos, unsigned paste_count, float t
 		/* do not paste if this control is in write mode and we're rolling */
 		return false;
 	}
-
+	AudioMusic pos (where);
 	/* Get appropriate list from selection. */
 	AutomationSelection::const_iterator p = selection.lines.get_nth(_parameter, counts.n_lines(_parameter));
 	if (p == selection.lines.end()) {
@@ -702,17 +702,17 @@ AutomationTimeAxisView::paste_one (framepos_t pos, unsigned paste_count, float t
 
 	if (parameter_is_midi (src_type)) {
 		// convert length to samples (incl tempo-ramps)
-		len = DoubleBeatsFramesConverter (_session->tempo_map(), pos).to (len * paste_count);
+		len = DoubleBeatsFramesConverter (_session->tempo_map(), pos.frames).to (len * paste_count);
 		pos += _editor.get_paste_offset (pos, paste_count > 0 ? 1 : 0, len);
 	} else {
 		pos += _editor.get_paste_offset (pos, paste_count, len);
 	}
 
 	/* convert sample-position to model's unit and position */
-	double const model_pos = _line->time_converter().from (pos - _line->time_converter().origin_b ());
+	double const model_pos = _line->time_converter().from (pos.frames - _line->time_converter().origin_b ());
 
 	XMLNode &before = alist->get_state();
-	alist->paste (**p, model_pos, DoubleBeatsFramesConverter (_session->tempo_map(), pos));
+	alist->paste (**p, model_pos, DoubleBeatsFramesConverter (_session->tempo_map(), pos.frames));
 	_session->add_command (new MementoCommand<AutomationList>(*alist.get(), &before, &alist->get_state()));
 
 	return true;

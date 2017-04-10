@@ -205,7 +205,7 @@ AutomationRegionView::add_automation_event (GdkEvent *, framepos_t when, double 
 }
 
 bool
-AutomationRegionView::paste (framepos_t                                      pos,
+AutomationRegionView::paste (const ARDOUR::AudioMusic&                       where,
                              unsigned                                        paste_count,
                              float                                           times,
                              boost::shared_ptr<const ARDOUR::AutomationList> slist)
@@ -223,21 +223,22 @@ AutomationRegionView::paste (framepos_t                                      pos
 	AutomationType src_type = (AutomationType)slist->parameter().type ();
 	double len = slist->length();
 
+	ARDOUR::AudioMusic pos (where);
 	/* add multi-paste offset if applicable */
 	if (parameter_is_midi (src_type)) {
 		// convert length to samples (incl tempo-ramps)
-		len = DoubleBeatsFramesConverter (view->session()->tempo_map(), pos).to (len * paste_count);
+		len = DoubleBeatsFramesConverter (view->session()->tempo_map(), pos.frames).to (len * paste_count);
 		pos += view->editor ().get_paste_offset (pos, paste_count > 0 ? 1 : 0, len);
 	} else {
 		pos += view->editor ().get_paste_offset (pos, paste_count, len);
 	}
 
 	/* convert sample-position to model's unit and position */
-	const double model_pos = _source_relative_time_converter.from (
-		pos - _source_relative_time_converter.origin_b());
+	const double model_pos = _source_relative_time_converter.from(
+		pos.frames - _source_relative_time_converter.origin_b());
 
 	XMLNode& before = my_list->get_state();
-	my_list->paste(*slist, model_pos, DoubleBeatsFramesConverter (view->session()->tempo_map(), pos));
+	my_list->paste(*slist, model_pos, DoubleBeatsFramesConverter (view->session()->tempo_map(), pos.frames));
 	view->session()->add_command(
 		new MementoCommand<ARDOUR::AutomationList>(_line->memento_command_binder(), &before, &my_list->get_state()));
 

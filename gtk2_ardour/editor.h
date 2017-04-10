@@ -337,7 +337,7 @@ public:
 	/* nudge is initiated by transport controls owned by ARDOUR_UI */
 
 	framecnt_t get_nudge_distance (framepos_t pos, framecnt_t& next);
-	framecnt_t get_paste_offset (framepos_t pos, unsigned paste_count, framecnt_t duration);
+	ARDOUR::AudioMusic get_paste_offset (const ARDOUR::AudioMusic& pos, unsigned paste_count, framecnt_t duration);
 	unsigned get_grid_beat_divisions(framepos_t position);
 	Evoral::Beats get_grid_type_as_beats (bool& success, framepos_t position);
 
@@ -410,8 +410,8 @@ public:
 	void reposition_and_zoom (framepos_t, double);
 
 	framepos_t get_preferred_edit_position (Editing::EditIgnoreOption = Editing::EDIT_IGNORE_NONE,
-	                                        bool use_context_click = false,
-	                                        bool from_outside_canvas = false);
+						bool use_context_click = false,
+						bool from_outside_canvas = false);
 
 	bool update_mouse_speed ();
 	bool decelerate_mouse_speed ();
@@ -1212,7 +1212,7 @@ private:
 
 	/* CUT/COPY/PASTE */
 
-	framepos_t last_paste_pos;
+	ARDOUR::AudioMusic last_paste_pos;
 	unsigned   paste_count;
 
 	void cut_copy (Editing::CutCopyOp);
@@ -1223,7 +1223,7 @@ private:
 	void cut_copy_midi (Editing::CutCopyOp);
 
 	void mouse_paste ();
-	void paste_internal (framepos_t position, float times, const int32_t sub_num);
+	void paste_internal (const ARDOUR::AudioMusic& position, float times);
 
 	/* EDITING OPERATIONS */
 
@@ -1578,7 +1578,7 @@ private:
 	bool can_remove_control_point (ArdourCanvas::Item *);
 	void remove_control_point (ArdourCanvas::Item *);
 
-	void mouse_brush_insert_region (RegionView*, framepos_t pos);
+	void mouse_brush_insert_region (RegionView*, ARDOUR::AudioMusic& pos);
 
 	/* Canvas event handlers */
 
@@ -1944,7 +1944,7 @@ private:
 	void stop_canvas_autoscroll ();
 
 	/* trimming */
-	void point_trim (GdkEvent *, const ARDOUR::MusicFrame&);
+	void point_trim (GdkEvent *, const ARDOUR::AudioMusic&);
 
 	void trim_region_front();
 	void trim_region_back();
