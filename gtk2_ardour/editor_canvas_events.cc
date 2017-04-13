@@ -1276,7 +1276,7 @@ Editor::drop_regions (const Glib::RefPtr<Gdk::DragContext>& /*context*/,
 	event.button.y = y;
 	/* assume we're dragging with button 1 */
 	event.motion.state = Gdk::BUTTON1_MASK;
-	MusicFrame pos = window_event_sample (&event, &px, &py);
+	AudioMusic pos (window_event_sample (&event, &px, &py), 0.0);
 	snap_to (pos);
 
 	boost::shared_ptr<Region> region = _regions->get_dragged_region ();
@@ -1320,7 +1320,7 @@ Editor::drop_regions (const Glib::RefPtr<Gdk::DragContext>& /*context*/,
 
 		if ((boost::dynamic_pointer_cast<AudioRegion> (region_copy) != 0 && dynamic_cast<AudioTimeAxisView*> (rtav) != 0) ||
 		    (boost::dynamic_pointer_cast<MidiRegion> (region_copy) != 0 && dynamic_cast<MidiTimeAxisView*> (rtav) != 0)) {
-			_drags->set (new RegionInsertDrag (this, region_copy, rtav, pos), &event);
+			_drags->set (new RegionInsertDrag (this, region_copy, rtav, pos.frames), &event);
 			_drags->end_grab (&event);
 		}
 	}

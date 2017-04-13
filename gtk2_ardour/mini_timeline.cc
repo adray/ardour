@@ -563,8 +563,9 @@ MiniTimeline::render (Cairo::RefPtr<Cairo::Context> const& ctx, cairo_rectangle_
 	const Locations::LocationList& ll (_session->locations ()->list ());
 	for (Locations::LocationList::const_iterator l = ll.begin(); l != ll.end(); ++l) {
 		if ((*l)->is_session_range ()) {
-			lm.push_back (LocationMarker(_("start"), (*l)->start ()));
-			lm.push_back (LocationMarker(_("end"), (*l)->end ()));
+			lm.push_back (LocationMarker(_("start"), (*l)->start ().frames));
+			lm.push_back (LocationMarker(_("end"), (*l)->end ().frames));
+
 			continue;
 		}
 
@@ -572,7 +573,7 @@ MiniTimeline::render (Cairo::RefPtr<Cairo::Context> const& ctx, cairo_rectangle_
 			continue;
 		}
 
-		lm.push_back (LocationMarker((*l)->name(), (*l)->start ()));
+		lm.push_back (LocationMarker((*l)->name(), (*l)->start ().frames));
 	}
 
 	_jumplist.clear ();

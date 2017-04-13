@@ -475,7 +475,7 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 
 	void set_auto_punch_location (Location *);
 	void set_auto_loop_location (Location *);
-	void set_session_extents (framepos_t start, framepos_t end);
+	void set_session_extents (const AudioMusic& start, const AudioMusic& end);
 	bool end_is_free () const { return _session_range_end_is_free; }
 	void set_end_is_free (bool);
 	int location_name(std::string& result, std::string base = std::string(""));
@@ -716,8 +716,8 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 
 	framecnt_t convert_to_frames (AnyTime const & position);
 	framecnt_t any_duration_to_frames (framepos_t position, AnyTime const & duration);
-	AudioMusic audiomusic_at_musicframe (const MusicFrame& position);
-	AudioMusic audiomusic_at_qn (const double quarter_note);
+	AudioMusic audiomusic_at_musicframe (const MusicFrame& position) const;
+	AudioMusic audiomusic_at_qn (const double quarter_note) const;
 	double qn_at_beat (const double beat);
 	double beat_at_qn (const double quarter_note);
 
@@ -1007,7 +1007,7 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 
 	/* ranges */
 
-	void request_play_range (std::list<MusicFrameRange>*, bool leave_rolling = false);
+	void request_play_range (std::list<AudioMusicRange>*, bool leave_rolling = false);
 	void request_cancel_play_range ();
 	bool get_play_range () const { return _play_range; }
 
@@ -1028,8 +1028,8 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 	/* temporary hacks to allow selection to be pushed from GUI into backend.
 	   Whenever we move the selection object into libardour, these will go away.
 	 */
-	void set_range_selection (MusicFrame start, MusicFrame end);
-	void set_object_selection (framepos_t start, framepos_t end);
+	void set_range_selection (const AudioMusic& start, const AudioMusic& end);
+	void set_object_selection (const AudioMusic& start, const AudioMusic& end);
 	void clear_range_selection ();
 	void clear_object_selection ();
 
@@ -1937,16 +1937,16 @@ class LIBARDOUR_API Session : public PBD::StatefulDestructible, public PBD::Scop
 
 	/* range playback */
 
-	std::list<MusicFrameRange> current_audio_range;
+	std::list<AudioMusicRange> current_audio_range;
 	bool _play_range;
-	void set_play_range (std::list<MusicFrameRange>&, bool leave_rolling);
+	void set_play_range (std::list<AudioMusicRange>&, bool leave_rolling);
 	void unset_play_range ();
 
 	/* temporary hacks to allow selection to be pushed from GUI into backend
 	   Whenever we move the selection object into libardour, these will go away.
 	*/
-	Evoral::Range<MusicFrame> _range_selection;
-	Evoral::Range<framepos_t> _object_selection;
+	Evoral::Range<AudioMusic> _range_selection;
+	Evoral::Range<AudioMusic> _object_selection;
 
 	void unset_preroll_record_punch ();
 	void unset_preroll_record_trim ();
