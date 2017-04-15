@@ -535,8 +535,7 @@ Region::set_length (AudioMusic& len)
 void
 Region::set_length_internal (const AudioMusic& len)
 {
-	_last_length = _length;
-	_last_length_qn = _length_qn;
+	update_last_length();
 
 	_length = len.frames;
 	_length_qn = len.qnotes;
@@ -775,6 +774,7 @@ Region::set_position_internal (const AudioMusic& pos)
 	*/
 
 	update_last_position ();
+	update_last_length ();
 
 	_position = pos.frames;
 	_quarter_note = pos.qnotes;
@@ -795,7 +795,6 @@ Region::set_position_internal (const AudioMusic& pos)
 	   XXX is this the right thing to do?
 	*/
 	if (max_framepos - _length < _position) {
-		update_last_length ();
 		AudioMusic const new_len = _session.audiomusic_at_musicframe (max_framepos) - position_am();
 		set_length_internal (new_len);
 	}
@@ -829,15 +828,13 @@ Region::set_initial_position (MusicFrame pos)
 		*/
 
 		if (max_framepos - _length < _position) {
-			_last_length = _length;
-			_last_length_qn = _length_qn;
+			update_last_length();
 			_length = max_framepos - _position;
 		}
 
 		recompute_position_from_lock_style (pos.division);
 		/* ensure that this move doesn't cause a range move */
-		_last_position = _position;
-		_last_qn = _quarter_note;
+		update_last_position();
 	}
 
 
@@ -1177,8 +1174,7 @@ Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 
 	if (_position != position.frames) {
 		if (!property_changes_suspended()) {
-			_last_position = _position;
-			_last_qn = _quarter_note;
+			update_last_position();
 		}
 		set_position_internal (position);
 		what_changed.add (Properties::position);
@@ -1186,8 +1182,7 @@ Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 
 	if (_length != new_length.frames) {
 		if (!property_changes_suspended()) {
-			_last_length = _length;
-			_last_length_qn = _length_qn;
+			update_last_length();
 		}
 		set_length_internal (new_length);
 		what_changed.add (Properties::length);
