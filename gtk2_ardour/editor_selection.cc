@@ -1548,7 +1548,7 @@ Editor::region_selection_changed ()
 
 	if (_session) {
 		if (!selection->regions.empty()) {
-			_session->set_object_selection (selection->regions.start_am(), selection->regions.end_am());
+			_session->set_object_selection (selection->regions.start(), selection->regions.end_am());
 		} else {
 			_session->clear_object_selection ();
 		}
@@ -1778,7 +1778,7 @@ Editor::set_selection_from_region ()
 
 	/* select range (this will clear the region selection) */
 
-	selection->set (selection->regions.start_am(), selection->regions.end_am());
+	selection->set (selection->regions.start(), selection->regions.end_am());
 
 	/* and select the tracks */
 
