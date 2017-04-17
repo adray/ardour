@@ -459,20 +459,20 @@ public:
 
 	TrackViewList axis_views_from_routes (boost::shared_ptr<ARDOUR::RouteList>) const;
 
-	void snap_to (ARDOUR::AudioMusic& first,
-	              ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
-	              bool                for_mark  = false,
-		      bool                ensure_snap = false);
+	ARDOUR::AudioMusic snap_to (framepos_t        first,
+				    ARDOUR::RoundMode direction = ARDOUR::RoundNearest,
+				    bool              for_mark  = false,
+				    bool              ensure_snap = false);
 
-	void snap_to_with_modifier (ARDOUR::AudioMusic& first,
-	                            GdkEvent const *    ev,
-	                            ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
-	                            bool                for_mark  = false);
+	ARDOUR::AudioMusic snap_to_with_modifier (framepos_t        first,
+						  GdkEvent const *  ev,
+						  ARDOUR::RoundMode direction = ARDOUR::RoundNearest,
+						  bool              for_mark  = false);
 
-	void snap_to (ARDOUR::AudioMusic& first,
-	              ARDOUR::AudioMusic& last,
-	              ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
-	              bool                for_mark  = false);
+	std::pair<ARDOUR::AudioMusic, ARDOUR::AudioMusic> snap_to (framepos_t         first,
+								   framepos_t         last,
+								   ARDOUR::RoundMode  direction = ARDOUR::RoundNearest,
+								   bool               for_mark  = false);
 
 	void begin_selection_op_history ();
 	void begin_reversible_selection_op (std::string cmd_name);
@@ -2180,14 +2180,14 @@ private:
 	void select_next_route ();
 	void select_prev_route ();
 
-	void snap_to_internal (ARDOUR::AudioMusic& first,
-	                       ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
-	                       bool                for_mark  = false,
-			       bool                ensure_snap = false);
+	ARDOUR::AudioMusic snap_to_internal (framepos_t        first,
+					     ARDOUR::RoundMode direction = ARDOUR::RoundNearest,
+					     bool              for_mark  = false,
+					     bool              ensure_snap = false);
 
-	void timecode_snap_to_internal (ARDOUR::AudioMusic& first,
-	                                ARDOUR::RoundMode   direction = ARDOUR::RoundNearest,
-	                                bool                for_mark  = false);
+	ARDOUR::AudioMusic timecode_snap_to_internal (framepos_t        first,
+						      ARDOUR::RoundMode direction = ARDOUR::RoundNearest,
+						      bool              for_mark  = false);
 
 	RhythmFerret* rhythm_ferret;
 
