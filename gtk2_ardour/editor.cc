@@ -2671,7 +2671,7 @@ Editor::snap_to_with_modifier (framepos_t start, GdkEvent const * event, RoundMo
 		if (_snap_mode == SnapOff) {
 			ret = snap_to_internal (start, direction, for_mark);
 		} else {
-			ret = _session->audiomusic_at_musicframe (start);
+			ret = _session->audiomusic_at_frame (start);
 		}
 	} else {
 		if (_snap_mode != SnapOff) {
@@ -2680,7 +2680,7 @@ Editor::snap_to_with_modifier (framepos_t start, GdkEvent const * event, RoundMo
 			/* SnapOff, but we pressed the snap_delta modifier */
 			ret = snap_to_internal (start, direction, for_mark);
 		} else {
-			ret = _session->audiomusic_at_musicframe (start);
+			ret = _session->audiomusic_at_frame (start);
 		}
 	}
 
@@ -2692,7 +2692,7 @@ Editor::snap_to (framepos_t start, RoundMode direction, bool for_mark, bool ensu
 {
 	if (!_session || (_snap_mode == SnapOff && !ensure_snap)) {
 
-		return _session->audiomusic_at_musicframe (start);
+		return _session->audiomusic_at_frame (start);
 	}
 
 	return snap_to_internal (start, direction, for_mark, ensure_snap);
@@ -2763,7 +2763,7 @@ Editor::timecode_snap_to_internal (framepos_t start, RoundMode direction, bool /
 		abort(); /*NOTREACHED*/
 	}
 
-	return _session->audiomusic_at_musicframe (start);
+	return _session->audiomusic_at_frame (start);
 }
 
 AudioMusic
@@ -2792,7 +2792,7 @@ Editor::snap_to_internal (framepos_t start, RoundMode direction, bool for_mark, 
 			start = (framepos_t) floor ((double) start / (one_second / 75)) * (one_second / 75);
 		}
 
-		ret = _session->audiomusic_at_musicframe (start);
+		ret = _session->audiomusic_at_frame (start);
 
 		break;
 
@@ -2806,7 +2806,7 @@ Editor::snap_to_internal (framepos_t start, RoundMode direction, bool for_mark, 
 			start = (framepos_t) floor ((double) start / one_second) * one_second;
 		}
 
-		ret = _session->audiomusic_at_musicframe (start);
+		ret = _session->audiomusic_at_frame (start);
 
 		break;
 
@@ -2820,7 +2820,7 @@ Editor::snap_to_internal (framepos_t start, RoundMode direction, bool for_mark, 
 			start = (framepos_t) floor ((double) start / one_minute) * one_minute;
 		}
 
-		ret = _session->audiomusic_at_musicframe (start);
+		ret = _session->audiomusic_at_frame (start);
 
 		break;
 
@@ -2886,14 +2886,14 @@ Editor::snap_to_internal (framepos_t start, RoundMode direction, bool for_mark, 
 
 	case SnapToMark:
 		if (for_mark) {
-			return _session->audiomusic_at_musicframe (start);
+			return _session->audiomusic_at_frame (start);
 		}
 
 		_session->locations()->marks_either_side (start, before, after);
 
 		if (before.frames == max_framepos && after.frames == max_framepos) {
 			/* No marks to snap to, so just don't snap */
-			return _session->audiomusic_at_musicframe (start);
+			return _session->audiomusic_at_frame (start);
 		} else if (before.frames == max_framepos) {
 			ret = after;
 		} else if (after.frames == max_framepos) {
@@ -2922,7 +2922,7 @@ Editor::snap_to_internal (framepos_t start, RoundMode direction, bool for_mark, 
 
 			vector<AudioMusic>::iterator prev = region_boundary_cache.end ();
 			vector<AudioMusic>::iterator next = region_boundary_cache.end ();
-			AudioMusic const where = _session->audiomusic_at_musicframe (start);
+			AudioMusic const where = _session->audiomusic_at_frame (start);
 
 			if (direction > 0) {
 				next = std::upper_bound (region_boundary_cache.begin(), region_boundary_cache.end(), where);
@@ -2960,12 +2960,12 @@ Editor::snap_to_internal (framepos_t start, RoundMode direction, bool for_mark, 
 
 		if (presnap > ret.frames) {
 			if (presnap > (ret.frames + pixel_to_sample(snap_threshold))) {
-				ret = _session->audiomusic_at_musicframe (presnap);
+				ret = _session->audiomusic_at_frame (presnap);
 			}
 
 		} else if (presnap < ret.frames) {
 			if (presnap < (ret.frames - pixel_to_sample(snap_threshold))) {
-				ret = _session->audiomusic_at_musicframe (presnap);
+				ret = _session->audiomusic_at_frame (presnap);
 			}
 		}
 
@@ -2973,7 +2973,7 @@ Editor::snap_to_internal (framepos_t start, RoundMode direction, bool for_mark, 
 
 	default:
 		/* handled at entry */
-		return _session->audiomusic_at_musicframe (start);
+		return _session->audiomusic_at_frame (start);
 	}
 }
 
