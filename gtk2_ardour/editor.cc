@@ -4521,7 +4521,8 @@ Editor::set_samples_per_pixel (framecnt_t spp)
 	samples_per_pixel = spp;
 
 	if (tempo_lines) {
-		tempo_lines->tempo_map_changed();
+		_tempo_lines_bfc->set_origin_b (_session->tempo_map().music_origin());
+		tempo_lines->tempo_map_changed ();
 	}
 
 	bool const showing_time_selection = selection->time.length().frames > 0;
