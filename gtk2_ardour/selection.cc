@@ -1370,11 +1370,11 @@ Selection::set_state (XMLNode const & node, int)
 			double end_qn;
 
 			if ((*i)->get_property (X_("start-qnotes"), start_qn) && (*i)->get_property (X_("end-qnotes"), end_qn)) {
-				set_preserving_all_ranges (AudioMusic (start, start_qn),
-							   AudioMusic (end, end_qn));
+				add (AudioMusic (start, start_qn),
+				     AudioMusic (end, end_qn));
 			} else {
-				set_preserving_all_ranges (editor->session()->audiomusic_at_frame(start),
-							   editor->session()->audiomusic_at_frame(end));
+				add (editor->session()->audiomusic_at_frame(start),
+				     editor->session()->audiomusic_at_frame(end));
 			}
 
 		} else if ((*i)->name() == X_("AutomationView")) {
