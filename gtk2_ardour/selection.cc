@@ -1220,13 +1220,13 @@ Selection::set_state (XMLNode const & node, int)
 		return -1;
 	}
 
+	RegionSelection selected_regions;
+
 	clear_regions ();
 	clear_midi_notes ();
 	clear_points ();
 	clear_time ();
 	clear_markers ();
-
-	RegionSelection selected_regions;
 
 	/* NOTE: stripable/time-axis-view selection is saved/restored by
 	 * ARDOUR::CoreSelection, not this Selection object
@@ -1246,7 +1246,9 @@ Selection::set_state (XMLNode const & node, int)
 			editor->get_regionviews_by_id (id, rs);
 
 			if (!rs.empty ()) {
-				selected_regions.insert (selected_regions.end(), rs.begin(), rs.end());
+				for (RegionSelection::const_iterator i = rs.begin(); i != rs.end(); ++i) {
+					selected_regions.push_back (*i);
+				}
 			} else {
 				/*
 				  regionviews haven't been constructed - stash the region IDs
@@ -1416,8 +1418,9 @@ Selection::set_state (XMLNode const & node, int)
 
 	}
 
-	// now add regions to selection at once
-	add (selected_regions);
+	if (!selected_regions.empty()) {
+		add (selected_regions);
+	}
 
 	return 0;
 }
