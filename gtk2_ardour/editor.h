@@ -1756,6 +1756,7 @@ private:
 	void tempo_map_changed (const PBD::PropertyChange&);
 	void tempometric_position_changed (const PBD::PropertyChange&);
 	void redisplay_tempo (bool immediate_redraw);
+	void update_time_selection_after_tempo_map_change ();
 
 	uint32_t bbt_beat_subdivision;
 
