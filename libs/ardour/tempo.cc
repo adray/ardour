@@ -4944,3 +4944,4 @@ operator<< (std::ostream& o, const MetricSection& section) {
 
 	return o;
 }
+
