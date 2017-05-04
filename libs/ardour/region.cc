@@ -524,10 +524,7 @@ Region::set_length (AudioMusic& len)
 			recompute_at_end ();
 		}
 
-		PropertyChange what_changed;
-		what_changed.add (Properties::length);
-		what_changed.add (Properties::length_qn);
-		send_change (what_changed);
+		send_change (Properties::length);
 	}
 }
 void
@@ -627,23 +624,14 @@ Region::update_after_tempo_map_change (bool send)
 	if (!pl) {
 		return;
 	}
-	PropertyChange what_changed;
 
 	if (_position_lock_style == AudioTime) {
 		recompute_position_from_lock_style (0);
 		/* _length doesn't change for audio regions. update length_qn to match. */
-		_length_qn = _session.tempo_map().quarter_notes_between_frames (_position, _position + _length);
-		_start_qn = _session.tempo_map().quarter_notes_between_frames (_position - _start, _position);
+		_length_qn = _session.tempo_map().quarter_note_at_frame (_position + _length) - _quarter_note;
+		_start_qn = _quarter_note - _session.tempo_map().quarter_note_at_frame (_position - _start);
 
 		/* don't signal position as it has not chnged */
-		what_changed.add (Properties::length_qn);
-		what_changed.add (Properties::start_qn);
-		what_changed.add (Properties::quarter_note);
-
-		if (send) {
-			send_change (what_changed);
-		}
-
 		return;
 	}
 
@@ -651,16 +639,8 @@ Region::update_after_tempo_map_change (bool send)
 	const framepos_t pos = max ((framepos_t) 0, _session.tempo_map().frame_at_quarter_note (_quarter_note));
 	set_position_internal (AudioMusic (pos, _quarter_note));
 
-	/* do this even if the position is the same. this helps out
-	   a GUI that has moved its representation already.
-	*/
-
-	what_changed.add (Properties::start_qn);
-	what_changed.add (Properties::length_qn);
-	what_changed.add (Properties::position);
-
-	if (send) {
-		send_change (what_changed);
+	if (send && pos != _last_position) {
+		send_change (Properties::position);
 	}
 }
 
@@ -866,11 +846,7 @@ Region::set_start (framepos_t pos)
 		first_edit ();
 		maybe_invalidate_transients ();
 
-		PropertyChange what;
-		what.add (Properties::start);
-		what.add (Properties::start_qn);
-
-		send_change (what);
+		send_change (Properties::start);
 	}
 }
 void
@@ -895,11 +871,7 @@ Region::set_start (AudioMusic& pos)
 		first_edit ();
 		maybe_invalidate_transients ();
 
-		PropertyChange what_changed;
-		what_changed.add (Properties::start);
-		what_changed.add (Properties::start_qn);
-
-		send_change (what_changed);
+		send_change (Properties::start);
 	}
 }
 
@@ -944,11 +916,7 @@ Region::move_start (const AudioMusic& distance)
 	_whole_file = false;
 	first_edit ();
 
-	PropertyChange what_changed;
-	what_changed.add (Properties::start);
-	what_changed.add (Properties::start_qn);
-
-	send_change (what_changed);
+	send_change (Properties::start);
 }
 
 void
@@ -1112,7 +1080,6 @@ Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 	if (_start != new_start.frames) {
 		set_start_internal (new_start);
 		what_changed.add (Properties::start);
-		what_changed.add (Properties::start_qn);
 	}
 
 
@@ -1130,7 +1097,6 @@ Region::trim_to_internal (const AudioMusic& position, const AudioMusic& length)
 		}
 		set_position_internal (position);
 		what_changed.add (Properties::position);
-		what_changed.add (Properties::quarter_note);
 	}
 
 	if (_length != new_length.frames) {
