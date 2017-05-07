@@ -1422,8 +1422,6 @@ Region::_set_state (const XMLNode& node, int /*version*/, PropertyChange& what_c
 {
 	Timecode::BBT_Time bbt_time;
 	double beat;
-	double start_beats;
-	double length_beats;
 
 	Stateful::save_extra_xml (node);
 
@@ -1450,12 +1448,14 @@ Region::_set_state (const XMLNode& node, int /*version*/, PropertyChange& what_c
 		_quarter_note = _session.tempo_map().quarter_note_at_beat (beat);
 	}
 
-	if (node.get_property ("start-beats", start_beats)) {
-		_start_qn = start_beats;
+	/* session created before start/length-qn property existed */
+	double foo;
+	if (!node.get_property ("start-qn", foo)) {
+		_start_qn = _session.tempo_map().quarter_notes_between_frames (_position - _start, _position);
 	}
 
-	if (node.get_property ("length-beats", length_beats)) {
-		_length_qn = length_beats;
+	if (!node.get_property ("length-qn", foo)) {
+		_length_qn = _session.tempo_map().quarter_notes_between_frames (_position, _position + _length);
 	}
 
 	/* fix problems with old sessions corrupted by impossible

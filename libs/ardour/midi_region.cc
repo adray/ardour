@@ -481,7 +481,18 @@ MidiRegion::state ()
 int
 MidiRegion::set_state (const XMLNode& node, int version)
 {
+	double start_beats;
+	double length_beats;
 	int ret = Region::set_state (node, version);
+
+	/* previously, only midi regions had a musical start/length. */
+	if (node.get_property ("start-beats", start_beats)) {
+		_start_qn = start_beats;
+	}
+
+	if (node.get_property ("length-beats", length_beats)) {
+		_length_qn = length_beats;
+	}
 
 	return ret;
 }
