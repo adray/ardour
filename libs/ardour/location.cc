@@ -1175,7 +1175,7 @@ Locations::set_state (const XMLNode& node, int version)
 								session_range_location->set_start (loc->start(), true);
 								add = false;
 							} else if (s == X_("IsEnd")) {
-								session_range_location->set_end (loc->start(), true);
+								session_range_location->set_end (loc->end(), true);
 								add = false;
 							}
 
