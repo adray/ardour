@@ -268,9 +268,7 @@ MidiRegion::set_position_frame (framepos_t f)
 	PropertyChange what_changed;
 
 	what_changed.add (Properties::position);
-	if (position_lock_style() == MusicTime) {
-		what_changed.add (Properties::length);
-	}
+	what_changed.add (Properties::length);
 
 	send_change (what_changed);
 }
@@ -292,9 +290,7 @@ MidiRegion::set_position_qnote (double qn)
 	PropertyChange what_changed;
 
 	what_changed.add (Properties::position);
-	if (position_lock_style() == MusicTime) {
-		what_changed.add (Properties::length);
-	}
+	what_changed.add (Properties::length);
 
 	send_change (what_changed);
 }
@@ -314,9 +310,12 @@ MidiRegion::set_position (const AudioMusic& pos)
 	PropertyChange what_changed;
 
 	what_changed.add (Properties::position);
-	if (position_lock_style() == MusicTime) {
-		what_changed.add (Properties::length);
-	}
+	/** we must signal length changed even if locked to Audiotime.
+	    This tells the gui to redisplay the model (region contents have changed).
+	    this conflicts with the detection of a range move. (position and length have changed).
+	    what to do ?
+	*/
+	what_changed.add (Properties::length);
 
 	send_change (what_changed);
 }
