@@ -200,26 +200,36 @@ WaveViewCache::get_cache_group (boost::shared_ptr<ARDOUR::AudioSource> source)
 		return it->second;
 	}
 
-	// Creating new CacheGroup for AudioSource
-
 	boost::shared_ptr<WaveViewCacheGroup> new_group (new WaveViewCacheGroup (*this));
 
-	cache_group_map.insert (std::make_pair (source, new_group));
+	bool inserted = cache_group_map.insert (std::make_pair (source, new_group)).second;
+
+	assert (inserted);
 
 	return new_group;
 }
 
 void
-WaveViewCache::reset_cache_group (boost::shared_ptr<ARDOUR::AudioSource> source)
+WaveViewCache::reset_cache_group (boost::shared_ptr<WaveViewCacheGroup>& group)
 {
-	CacheGroups::iterator it = cache_group_map.find (source);
+	if (!group) {
+		return;
+	}
 
-	// The WaveView just dropped its reference to the CacheGroup that should be
-	// in the Cache map
-	assert (it != cache_group_map.end());
+	CacheGroups::iterator it = cache_group_map.begin();
 
-	if ((*it).second.unique()) {
-		// Dropping reference to AudioSource
+	while (it != cache_group_map.end()) {
+		if (it->second == group) {
+			break;
+		}
+		++it;
+	}
+
+	assert (it != cache_group_map.end ());
+
+	group.reset();
+
+	if (it->second.unique()) {
 		cache_group_map.erase (it);
 	}
 }

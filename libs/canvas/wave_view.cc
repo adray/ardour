@@ -126,20 +126,13 @@ WaveView::~WaveView ()
 	WaveViewThreads::deinitialize ();
 #endif
 
-	/**
-	 * Notify the Cache that we are dropping our reference to the AudioSource so
-	 * it can also do so if it is the only reference holder of the cache group
-	 */
-	if (_cache_group) {
-		_cache_group.reset();
-		WaveViewCache::get_instance()->reset_cache_group (_region->audio_source (_props->channel));
-	}
+	reset_cache_group ();
 }
 
 string
 WaveView::debug_name() const
 {
-	return _region->name() + string (":") + PBD::to_string (_props->channel+1);
+	return _region->name () + string (":") + PBD::to_string (_props->channel + 1);
 }
 
 void
@@ -1198,8 +1191,7 @@ WaveView::set_channel (int channel)
 	if (_props->channel != channel) {
 		begin_change ();
 		_props->channel = channel;
-		_cache_group =
-		    WaveViewCache::get_instance()->get_cache_group (_region->audio_source (_props->channel));
+		reset_cache_group ();
 		_bounding_box_dirty = true;
 		end_change ();
 	}
@@ -1407,7 +1399,17 @@ WaveView::get_cache_group () const
 	if (_cache_group) {
 		return _cache_group;
 	}
-	_cache_group =
-	    WaveViewCache::get_instance ()->get_cache_group (_region->audio_source (_props->channel));
+
+	boost::shared_ptr<AudioSource> source = _region->audio_source (_props->channel);
+	assert (source);
+
+	_cache_group = WaveViewCache::get_instance ()->get_cache_group (source);
+
 	return _cache_group;
+}
+
+void
+WaveView::reset_cache_group ()
+{
+	WaveViewCache::get_instance()->reset_cache_group (_cache_group);
 }

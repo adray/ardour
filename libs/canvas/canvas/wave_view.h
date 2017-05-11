@@ -257,6 +257,13 @@ private:
 	static void process_draw_request (boost::shared_ptr<WaveViewDrawRequest>);
 
 	boost::shared_ptr<WaveViewCacheGroup> get_cache_group () const;
+
+	/**
+	 * Notify the Cache that we are dropping our reference to the
+	 * CacheGroup so it can also do so if it is the only reference holder
+	 * of the cache group.
+	 */
+	void reset_cache_group ();
 };
 
 } // namespace ArdourCanvas

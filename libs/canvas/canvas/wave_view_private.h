@@ -264,7 +264,7 @@ public:
 
 	boost::shared_ptr<WaveViewCacheGroup> get_cache_group (boost::shared_ptr<ARDOUR::AudioSource>);
 
-	void reset_cache_group (boost::shared_ptr<ARDOUR::AudioSource>);
+	void reset_cache_group (boost::shared_ptr<WaveViewCacheGroup>&);
 
 private:
 	WaveViewCache();
